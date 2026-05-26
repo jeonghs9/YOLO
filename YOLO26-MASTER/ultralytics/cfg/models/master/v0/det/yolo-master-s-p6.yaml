@@ -1,0 +1,51 @@
+# YOLO-Master 🚀 AGPL-3.0 License - https://ultralytics.com/license
+# YOLO-Master-S-P6: 4-head detection (P3/P4/P5/P6), backbone unchanged
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  s: [0.50, 0.50, 1024]
+
+# yolo-master-backbone with Mixture of Experts (MoE) layers [unchanged]
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]           # 0  P1/2
+  - [-1, 1, Conv, [128, 3, 2]]          # 1  P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]]   # 2
+  - [-1, 1, ES_MOE, [256]]              # 3
+  - [-1, 1, Conv, [256, 3, 2]]          # 4  P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]]   # 5
+  - [-1, 1, ES_MOE, [512]]              # 6  ← P3 output
+  - [-1, 1, Conv, [512, 3, 2]]          # 7  P4/16
+  - [-1, 4, A2C2f, [512, True, 4]]      # 8
+  - [-1, 1, ES_MOE, [512]]              # 9  ← P4 output
+  - [-1, 1, Conv, [1024, 3, 2]]         # 10 P5/32
+  - [-1, 4, A2C2f, [1024, True, 1]]     # 11
+  - [-1, 1, ES_MOE, [1024]]             # 12 ← P5 output
+
+# YOLO-Master-P6 head: FPN top-down + PAN bottom-up + P6 extension
+head:
+  # ── Top-Down (FPN) ─────────────────────────────────────
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 13
+  - [[-1, 9], 1, Concat, [1]]                     # 14 cat backbone P4
+  - [-1, 2, C3k2, [512, True]]                    # 15
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]    # 16
+  - [[-1, 6], 1, Concat, [1]]                     # 17 cat backbone P3
+  - [-1, 2, C3k2, [256, True]]                    # 18 ← Detect P3
+
+  # ── Bottom-Up (PAN) ────────────────────────────────────
+  - [-1, 1, Conv, [256, 3, 2]]                    # 19
+  - [[-1, 15], 1, Concat, [1]]                    # 20 cat head P4
+  - [-1, 2, C3k2, [512, True]]                    # 21 ← Detect P4
+
+  - [-1, 1, Conv, [512, 3, 2]]                    # 22
+  - [[-1, 12], 1, Concat, [1]]                    # 23 cat backbone P5
+  - [-1, 2, C3k2, [512, True]]                    # 24 ← Detect P5
+
+  # ── P6 extension (stride 64) ───────────────────────────
+  - [-1, 1, Conv, [512, 3, 2]]                    # 25 P5→P6 downsample
+  - [-1, 2, C3k2, [512, True]]                    # 26 ← Detect P6
+
+  - [[18, 21, 24, 26], 1, Detect, [nc]]           # 27 Detect(P3, P4, P5, P6)
