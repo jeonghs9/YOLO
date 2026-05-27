@@ -330,6 +330,7 @@ class ES_MOE(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.SiLU(inplace=True),
         )
+        
 
         # Load-balancing loss (original design)
         self.register_buffer('load_balancing_loss', torch.tensor(0.0), persistent=False)
@@ -371,6 +372,7 @@ class ES_MOE(nn.Module):
     def aux_loss(self):
         """Retrieve the auxiliary loss from the registry."""
         return MOE_LOSS_REGISTRY.get(self, torch.tensor(0.0))
+
 
     def _dense_forward(self, x, routing_weights):
         """Dense forward: compute all experts (used during training)."""
