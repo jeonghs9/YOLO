@@ -1189,6 +1189,10 @@ class E2ELoss:
         self.o2m_copy = self.o2m
         # final gain
         self.final_o2m = 0.1
+        # MoE loss cosine decay: 0.3 → 0.05 (from YOLO-MASTER)
+        self.moe_gain_init = 0.3
+        self.moe_gain_final = 0.05
+        self.moe_gain = self.moe_gain_init
 
     def __call__(self, preds: Any, batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculate the sum of the loss for box, cls and dfl multiplied by batch size."""
@@ -1197,9 +1201,9 @@ class E2ELoss:
         loss_one2many = self.one2many.loss(one2many, batch)
         loss_one2one = self.one2one.loss(one2one, batch)
         loss = loss_one2many[0] * self.o2m + loss_one2one[0] * self.o2o
-        moe_gain = float(getattr(self.one2one.hyp, "moe", 0.0) or 0.0)
-        if moe_gain:
-            loss = loss + self.one2one.moe_aux_loss() * moe_gain
+        moe_enabled = float(getattr(self.one2one.hyp, "moe", 0.0) or 0.0) > 0
+        if moe_enabled:
+            loss = loss + self.one2one.moe_aux_loss() * self.moe_gain
         return loss, loss_one2one[1]
 
     def update(self) -> None:
@@ -1207,6 +1211,10 @@ class E2ELoss:
         self.updates += 1
         self.o2m = self.decay(self.updates)
         self.o2o = max(self.total - self.o2m, 0)
+        # MoE gain cosine decay
+        progress = self.updates / max(self.one2one.hyp.epochs - 1, 1)
+        progress = min(progress, 1.0)
+        self.moe_gain = self.moe_gain_final + 0.5 * (self.moe_gain_init - self.moe_gain_final) * (1 + math.cos(math.pi * progress))
 
     def decay(self, x) -> float:
         """Calculate the decayed weight for one-to-many loss based on the current update step."""
