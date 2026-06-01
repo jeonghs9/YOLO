@@ -325,6 +325,15 @@ class ES_MOE(nn.Module):
             [EfficientExpertGroup(in_channels, out_channels, kernel_size=k) for k in ks]
         )
 
+        # Shared expert (always-active depthwise-separable path)
+        self.shared_expert = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1, groups=in_channels, bias=False),  # DWConv
+            nn.BatchNorm2d(out_channels),
+            nn.SiLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, 1, bias=False),  # PWConv
+            nn.BatchNorm2d(out_channels),
+        )
+
         # Output normalization (original design)
         self.norm = nn.Sequential(
             nn.BatchNorm2d(out_channels),
@@ -352,10 +361,8 @@ class ES_MOE(nn.Module):
 
         # Different forward strategies for train/infer
         if self.training or not self.use_top_k or not self.use_sparse_inference:
-            # Train mode or no Top-K or no sparse inference: dense compute
-            final_output = self._dense_forward(x, routing_weights)
+            final_output = self._residual_aggregation(x, routing_weights)
         else:
-            # Infer mode + Top-K + sparse inference: compute Top-K experts only
             final_output = self._sparse_forward(x, routing_weights.detach())
 
         if not hasattr(self, "norm"):
@@ -380,6 +387,21 @@ class ES_MOE(nn.Module):
             weight = routing_weights[:, i:i + 1, :, :]
             final_output = final_output + expert_out * weight
         return final_output
+    
+
+    # HS
+    def _residual_aggregation(self, x, routing_weights):
+        # Shared expert는 항상 활성화 (공통 feature 추출)
+        shared_out = self.shared_expert(x)
+        
+        # Routed experts는 residual로 추가
+        routed_out = 0
+        for i, expert in enumerate(self.experts):
+            expert_out = expert(x)
+            weight = routing_weights[:, i:i+1, :, :]
+            routed_out = routed_out + expert_out * weight
+        
+        return shared_out + routed_out  # residual connection
 
     def _sparse_forward(self, x, routing_weights):
         """Sparse forward: compute only Top-K experts (used during inference)."""
