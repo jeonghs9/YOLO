@@ -407,7 +407,7 @@ class v8DetectionLoss:
         """Calculate the sum of the loss for box, cls and dfl multiplied by batch size and return foreground mask and
         target indices.
         """
-        loss = torch.zeros(3, device=self.device)  # box, cls, dfl
+        loss = torch.zeros(4, device=self.device)  # box, cls, dfl, moe
         pred_distri, pred_scores = (
             preds["boxes"].permute(0, 2, 1).contiguous(),
             preds["scores"].permute(0, 2, 1).contiguous(),
@@ -484,12 +484,11 @@ class v8DetectionLoss:
     def loss(self, preds: dict[str, torch.Tensor], batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculate detection loss using assigned targets."""
         batch_size = preds["boxes"].shape[0]
-        loss, loss_detach = self.get_assigned_targets_and_loss(preds, batch)[1:]
+        loss, _ = self.get_assigned_targets_and_loss(preds, batch)[1:]
         moe_gain = float(getattr(self.hyp, "moe", 0.0) or 0.0)
         if moe_gain and not getattr(self.model, "end2end", False):
-            loss = loss.clone()
-            loss[0] = loss[0] + self.moe_aux_loss() * moe_gain
-        return loss * batch_size, loss_detach
+            loss[3] = self.moe_aux_loss() * moe_gain
+        return loss * batch_size, loss.detach()
 
 
 class v8SegmentationLoss(v8DetectionLoss):
@@ -510,8 +509,8 @@ class v8SegmentationLoss(v8DetectionLoss):
         else:
             pred_semseg = None
         (fg_mask, target_gt_idx, target_bboxes, _, _), det_loss, _ = self.get_assigned_targets_and_loss(preds, batch)
-        # NOTE: re-assign index for consistency for now. Need to be removed in the future.
-        loss[0], loss[2], loss[3] = det_loss[0], det_loss[1], det_loss[2]
+        # NOTE: re-assign index for consistency: det_loss=[box,cls,dfl,moe] → loss=[box,seg,cls,dfl,semseg]
+        loss[0], loss[2], loss[3] = det_loss[0], det_loss[1], det_loss[2]  # box, cls, dfl
 
         batch_size, _, mask_h, mask_w = proto.shape  # batch size, number of masks, mask height, mask width
         if fg_mask.sum():
@@ -1189,6 +1188,10 @@ class E2ELoss:
         self.o2m_copy = self.o2m
         # final gain
         self.final_o2m = 0.1
+        # MoE loss cosine decay: 0.3 → 0.05 (from YOLO-MASTER)
+        self.moe_gain_init = 0.3
+        self.moe_gain_final = 0.05
+        self.moe_gain = self.moe_gain_init
 
     def __call__(self, preds: Any, batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculate the sum of the loss for box, cls and dfl multiplied by batch size."""
@@ -1197,16 +1200,25 @@ class E2ELoss:
         loss_one2many = self.one2many.loss(one2many, batch)
         loss_one2one = self.one2one.loss(one2one, batch)
         loss = loss_one2many[0] * self.o2m + loss_one2one[0] * self.o2o
-        moe_gain = float(getattr(self.one2one.hyp, "moe", 0.0) or 0.0)
-        if moe_gain:
-            loss = loss + self.one2one.moe_aux_loss() * moe_gain
-        return loss, loss_one2one[1]
+        loss_detach = loss_one2one[1]
+        moe_enabled = float(getattr(self.one2one.hyp, "moe", 0.0) or 0.0) > 0
+        if moe_enabled:
+            moe_loss = self.one2one.moe_aux_loss() * self.moe_gain
+            batch_size = one2one["boxes"].shape[0]
+            loss[3] = moe_loss * batch_size
+            loss_detach = loss_detach.clone()
+            loss_detach[3] = moe_loss.detach()
+        return loss, loss_detach
 
     def update(self) -> None:
         """Update the weights for one-to-many and one-to-one losses based on the decay schedule."""
         self.updates += 1
         self.o2m = self.decay(self.updates)
         self.o2o = max(self.total - self.o2m, 0)
+        # MoE gain cosine decay
+        progress = self.updates / max(self.one2one.hyp.epochs - 1, 1)
+        progress = min(progress, 1.0)
+        self.moe_gain = self.moe_gain_final + 0.5 * (self.moe_gain_init - self.moe_gain_final) * (1 + math.cos(math.pi * progress))
 
     def decay(self, x) -> float:
         """Calculate the decayed weight for one-to-many loss based on the current update step."""
