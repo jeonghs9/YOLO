@@ -1,3 +1,17 @@
+# Ignore everything
+*
+
+# Except YOLO ultralytics folders
+!.gitignore
+!YOLO-MASTER/
+!YOLO-MASTER/ultralytics/
+!YOLO-MASTER/ultralytics/**
+!YOLO26-MASTER/
+!YOLO26-MASTER/ultralytics/
+!YOLO26-MASTER/ultralytics/**
+!YOLO26-MASTER/YOLO26-MASTER_result.md
+
+# Still ignore cache/artifacts
 __pycache__/
 *.pyc
 *.pt
