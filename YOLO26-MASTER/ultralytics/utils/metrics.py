@@ -728,8 +728,15 @@ def compute_ap(recall: list[float], precision: list[float]) -> tuple[float, np.n
         mrec (np.ndarray): Modified recall curve with sentinel values added at the beginning and end.
     """
     # Append sentinel values to beginning and end
-    mrec = np.concatenate(([0.0], recall, [recall[-1] if len(recall) else 1.0], [1.0]))
-    mpre = np.concatenate(([1.0], precision, [0.0], [0.0]))
+    # NOTE (2026-06-08): Official ultralytics 8.4.50 (this base) ships a STRICTER compute_ap that
+    # inserts an extra (recall[-1], 0.0) sentinel, dropping precision to 0 at max-recall (no
+    # extrapolation credit). Older versions used by our baselines — stock YOLO26 (8.4.6) and
+    # YOLO-MASTER (8.3.240) — use the standard formula below. The 8.4.50 strict form makes
+    # conf=0.25 mAP ~0.1 lower, so cross-version comparison was misleading. Intentionally reverted
+    # here to the standard formula so YOLO26-MASTER is comparable to those baselines.
+    # ⚠️ This diverges from official 8.4.50. NOT a porting bug — the port itself was faithful.
+    mrec = np.concatenate(([0.0], recall, [1.0]))
+    mpre = np.concatenate(([1.0], precision, [0.0]))
 
     # Compute the precision envelope
     mpre = np.flip(np.maximum.accumulate(np.flip(mpre)))
