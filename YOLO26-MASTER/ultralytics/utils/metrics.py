@@ -734,9 +734,12 @@ def compute_ap(recall: list[float], precision: list[float]) -> tuple[float, np.n
     # YOLO-MASTER (8.3.240) — use the standard formula below. The 8.4.50 strict form makes
     # conf=0.25 mAP ~0.1 lower, so cross-version comparison was misleading. Intentionally reverted
     # here to the standard formula so YOLO26-MASTER is comparable to those baselines.
-    # ⚠️ This diverges from official 8.4.50. NOT a porting bug — the port itself was faithful.
-    mrec = np.concatenate(([0.0], recall, [1.0]))
+    # # ⚠️ This diverges from official 8.4.50. NOT a porting bug — the port itself was faithful.
+    mrec = np.concatenate(([0.0], recall, [1.0]))                               # 표준 (pre-8.4.50) ← 현재 활성
     mpre = np.concatenate(([1.0], precision, [0.0]))
+    # [8.4.50 strict] 아래 두 줄 활성화 + 위 두 줄 주석처리 시 공식 8.4.50 동작 (conf=0.25 mAP ~0.1 낮음)
+    # mrec = np.concatenate(([0.0], recall, [recall[-1] if len(recall) else 1.0], [1.0]))
+    # mpre = np.concatenate(([1.0], precision, [0.0], [0.0]))
 
     # Compute the precision envelope
     mpre = np.flip(np.maximum.accumulate(np.flip(mpre)))
