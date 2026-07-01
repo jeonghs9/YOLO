@@ -247,7 +247,7 @@ AdaRound, BRECQ, QDrop, LSQ는 주로 정확도를 회복하는 방법이다. �
 1. Percentile/Entropy calibration으로 Full-op INT8 정확도 비교
 2. AdaRound baseline 적용 완료: `YOLO26_QUANTIZATION_05_ADAROUND_W8A8.md`
 3. BRECQ block reconstruction 적용 완료: `YOLO26_QUANTIZATION_06_BRECQ_W8A8.md`
-4. QDrop 적용
+4. QDrop 적용 완료: `YOLO26_QUANTIZATION_07_QDROP_W8A8.md`
 5. 각 방법의 mAP50, mAP50-95, CPU FPS를 동일 조건으로 비교
 6. 고객사 CPU에서 최종 검증
 
@@ -263,6 +263,7 @@ YOLO26_QUANTIZATION_03_WINDOWS_HANDOFF.md
 YOLO26_QUANTIZATION_04_WINDOWS_RESULTS.md
 YOLO26_QUANTIZATION_05_ADAROUND_W8A8.md
 YOLO26_QUANTIZATION_06_BRECQ_W8A8.md
+YOLO26_QUANTIZATION_07_QDROP_W8A8.md
 ```
 
 변환 코드:
