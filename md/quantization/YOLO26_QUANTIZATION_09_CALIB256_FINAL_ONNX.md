@@ -78,3 +78,27 @@ Each file is approximately 21 MB. The ORT conversion reported the following grap
 - DequantizeLinear: 8
 
 All three final files successfully created an ONNX Runtime CPU session and completed one smoke inference with one output tensor.
+
+## QDQ GPU/CPU variants
+
+QOperator models were slow on CUDA because ONNX Runtime partitioned unsupported `QLinear` operators and inserted host/device copies. The same reconstructed FP32 ONNX inputs were therefore converted again with ORT static QDQ while keeping the Detect head in FP32.
+
+```text
+/home/hsjeong/workspace/Yolo26/ultralytics/models/3차모델/AdaRound/best_1024_adaround_w8a8_calib256_iter20000_qdq_nohead.onnx
+/home/hsjeong/workspace/Yolo26/ultralytics/models/3차모델/BRECQ/best_1024_brecq_w8a8_calib256_iter20000_qdq_nohead.onnx
+/home/hsjeong/workspace/Yolo26/ultralytics/models/3차모델/QDrop/best_1024_qdrop_w8a8_calib256_iter20000_qdq_nohead.onnx
+```
+
+Common graph audit:
+
+- File size: about 22.38 MB
+- Conv: 207
+- QLinearConv: 0
+- QuantizeLinear: 516
+- DequantizeLinear: 866
+- Detect-head Conv kept in FP32: 32
+- ONNX checker: passed
+- CPUExecutionProvider smoke inference: passed
+- CUDAExecutionProvider smoke inference on physical GPU 7: passed
+
+The exporter now accepts `--quant-format qoperator|qdq`; its default remains `qoperator` for backward compatibility.
