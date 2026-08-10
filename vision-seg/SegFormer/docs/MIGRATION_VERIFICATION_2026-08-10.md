@@ -125,3 +125,4 @@ The new source path is functionally equivalent for the tested config and checkpo
 
 It is not yet safe to delete the legacy SegFormer directory because the new source still links to its `pretrained` and `work_dirs` artifacts.
 
+Artifact cleanup performed after this verification is recorded in `ARTIFACT_AUDIT_2026-08-10.md`. The generated 20.2GB `res.pkl` and approximately 144MB of test visualizations were removed, reducing the legacy SegFormer directory to approximately 3.6GB.

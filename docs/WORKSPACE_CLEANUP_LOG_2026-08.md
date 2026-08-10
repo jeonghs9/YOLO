@@ -375,3 +375,21 @@ source/work_dirs  -> 기존 SegFormer/work_dirs
 ```text
 vision-seg/SegFormer/docs/MIGRATION_VERIFICATION_2026-08-10.md
 ```
+
+### SegFormer artifact 조사 및 생성 결과 정리
+
+같은 날 기존 SegFormer artifact를 조사했다. `work_dirs`에는 영상 파일이 없었고, 22GB 중 대부분은 MMSEG 테스트가 생성한 다음 단일 결과 캐시였다.
+
+```text
+work_dirs/res.pkl: 20,205,505,122 bytes
+```
+
+사용자 승인 범위에 따라 재생성 가능한 `res.pkl`과 두 SkyScapes `vis_test` 이미지 폴더 약 144MB를 삭제했다. SegFormer 전체 용량은 약 23GB에서 3.6GB로 줄었다.
+
+체크포인트와 pretrained 모델은 삭제하지 않았다. 검증 로그의 최고 mIoU를 기준으로 best·final 보존본 7개를 선정했으며, 중간 체크포인트 약 1.85GiB와 현재 config에서 사용하지 않는 B1/B3/B4/B5 pretrained 약 0.74GiB를 추가 삭제 후보로 분류했다.
+
+상세 목록은 다음 문서에 기록했다.
+
+```text
+vision-seg/SegFormer/docs/ARTIFACT_AUDIT_2026-08-10.md
+```
