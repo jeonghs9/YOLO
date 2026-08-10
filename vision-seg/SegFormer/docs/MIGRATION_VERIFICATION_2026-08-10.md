@@ -54,14 +54,14 @@ pretrained: approximately 867MB
 source and Git metadata: only a few MB
 ```
 
-The large artifacts were not duplicated. During this migration stage, the following ignored local symlinks provide compatibility:
+The large artifacts were not duplicated during the initial source verification. They were subsequently moved into the new SegFormer project, and the following ignored local symlinks provide compatibility:
 
 ```text
-source/pretrained -> legacy SegFormer/pretrained
-source/work_dirs  -> legacy SegFormer/work_dirs
+source/pretrained -> ../models/pretrained
+source/work_dirs  -> ../outputs/work_dirs
 ```
 
-These links must be replaced by durable artifact locations before deleting the legacy project.
+The actual artifact locations are now `models/pretrained` and `outputs/work_dirs`. The old SegFormer directory no longer contains `pretrained` or `work_dirs`.
 
 ## Environment correction
 
@@ -123,6 +123,6 @@ different pixels: 0
 
 The new source path is functionally equivalent for the tested config and checkpoint. It is safe to use the new source and editable installation.
 
-It is not yet safe to delete the legacy SegFormer directory because the new source still links to its `pretrained` and `work_dirs` artifacts.
+The new source and artifacts no longer depend on the legacy SegFormer `pretrained` or `work_dirs` paths. A final reference and file audit is still required before deleting the remaining legacy source directory.
 
 Artifact cleanup performed after this verification is recorded in `ARTIFACT_AUDIT_2026-08-10.md`. The generated 20.2GB `res.pkl` and approximately 144MB of test visualizations were removed, reducing the legacy SegFormer directory to approximately 3.6GB.

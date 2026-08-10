@@ -32,5 +32,16 @@ PYTHONNOUSERSITE=1 /home/hsjeong/miniconda3/envs/segformer_cu111/bin/python
 
 Without `PYTHONNOUSERSITE=1`, this host may load an incompatible user-level MMCV 1.7.1 instead of the environment's MMCV 1.3.0.
 
-During migration verification, `source/pretrained` and `source/work_dirs` are local ignored symlinks to preserved legacy artifacts. They are not part of Git and must be replaced with durable model/output storage before deleting the legacy project.
+Large artifacts are stored outside the Git-managed source tree:
 
+```text
+models/pretrained/   actual pretrained weights
+outputs/work_dirs/   actual checkpoints and training logs
+```
+
+For compatibility with upstream configs and tools, the source tree contains local ignored relative symlinks:
+
+```text
+source/pretrained -> ../models/pretrained
+source/work_dirs  -> ../outputs/work_dirs
+```

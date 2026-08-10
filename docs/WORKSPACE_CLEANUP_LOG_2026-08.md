@@ -393,3 +393,21 @@ work_dirs/res.pkl: 20,205,505,122 bytes
 ```text
 vision-seg/SegFormer/docs/ARTIFACT_AUDIT_2026-08-10.md
 ```
+
+### SegFormer artifact 실제 경로 이전
+
+조사와 생성 결과 정리 후 남은 artifact를 복제 없이 신규 프로젝트 내부로 이동했다.
+
+```text
+기존 SegFormer/pretrained -> vision-seg/SegFormer/models/pretrained
+기존 SegFormer/work_dirs  -> vision-seg/SegFormer/outputs/work_dirs
+```
+
+upstream config와 도구의 상대경로 호환을 위해 source에는 다음 로컬 링크를 사용한다.
+
+```text
+source/pretrained -> ../models/pretrained
+source/work_dirs  -> ../outputs/work_dirs
+```
+
+기존 SegFormer 경로에는 `pretrained`와 `work_dirs`가 더 이상 남아 있지 않다. 신규 실제 checkpoint 경로에서 GPU 추론을 다시 실행했으며 기존 baseline 마스크와 SHA-256이 같고 다른 픽셀은 0개였다.

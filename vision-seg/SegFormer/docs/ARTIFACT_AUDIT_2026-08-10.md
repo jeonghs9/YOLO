@@ -8,7 +8,7 @@ Audited legacy artifact path:
 /home/hsjeong/workspace/Yolo26/ultralytics/PROJECT/OCR-CAR-CATEGORY/git/SegFormer
 ```
 
-This path is temporarily referenced by local ignored symlinks from the new `vision-seg/SegFormer/source` tree.
+This was the artifact path at the start of the audit. After generated-output cleanup, the retained artifacts were moved into the new `vision-seg/SegFormer` project.
 
 ## Initial usage
 
@@ -110,3 +110,23 @@ If the intermediate checkpoint and unused pretrained candidates are removed, the
 
 No checkpoint or pretrained model deletion should occur without explicit confirmation.
 
+## Artifact relocation
+
+After the audit, the remaining artifact directories were moved without duplication:
+
+```text
+legacy SegFormer/pretrained
+  -> /home/hsjeong/workspace/vision-seg/SegFormer/models/pretrained
+
+legacy SegFormer/work_dirs
+  -> /home/hsjeong/workspace/vision-seg/SegFormer/outputs/work_dirs
+```
+
+Source compatibility links now use relative paths:
+
+```text
+source/pretrained -> ../models/pretrained
+source/work_dirs  -> ../outputs/work_dirs
+```
+
+GPU inference from the relocated checkpoint produced the same mask SHA-256 as the original baseline, with zero differing pixels.
