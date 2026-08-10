@@ -184,6 +184,8 @@ GitHub의 `origin/main`에서 기존 `YOLO26-MASTER/ultralytics` 파일 404개�
 
 ## 7. Yolo11 프로젝트 이전
 
+> 이 절의 내부 Git 상태는 최초 이전 당시의 기록이다. 이후 `Yolo11/ultralytics`는 아래 11절과 같이 상위 `vision-research` 저장소로 편입했다.
+
 ### 경로 변경
 
 ```text
@@ -263,3 +265,49 @@ workspace/
 ## 10. 보안 메모
 
 정리 과정에서 일부 Git remote 설정에 URL 내 인증정보가 포함된 사례가 확인되었다. 로컬 폴더를 삭제해도 발급된 토큰은 자동 폐기되지 않으므로, URL에 포함됐던 접근 토큰은 GitHub에서 별도로 폐기하거나 교체해야 한다.
+
+## 11. Yolo11 Ultralytics 소스 편입
+
+2026-08-10에 `Yolo11` 전체가 아닌 다음 소스 디렉터리만 상위 `vision-research` 저장소의 관리 대상으로 전환했다.
+
+```text
+/home/hsjeong/workspace/vision-det/Yolo11/ultralytics
+```
+
+- 상위 저장소 커밋: `744d145 Integrate YOLO11 source under vision-det`
+- GitHub 반영 위치: `vision-det/Yolo11/ultralytics/`
+- 편입 파일: 소스 및 모델·데이터셋 설정 296개
+- 실행 검증: `yolov11_env`에서 `ultralytics` import 경로 정상
+- 공용 결과 경로: `/tmp/Ultralytics/runs` 유지
+
+다음 항목은 상위 Git에서 제외했다.
+
+```text
+Yolo11의 ultralytics 외 디렉터리
+mmcv
+runs 및 wandb
+모델 가중치 (*.pt, *.pth)
+Python 캐시 (__pycache__, *.pyc)
+로컬 데이터셋과 기타 실험 산출물
+```
+
+기존 독립 저장소 `jeonghs9/secuwatcher-yolo11`의 내부 `.git`은 작업 디렉터리에서 분리했으며, 당시 복구용 사본은 다음 임시 경로에 두었다.
+
+```text
+/tmp/Yolo11-ultralytics.git.backup-20260810
+```
+
+이 경로는 `/tmp`이므로 영구 보관 위치가 아니다. 기존 GitHub 저장소를 삭제하기 전에는 `git bundle`로 전체 이력을 영구 경로에 백업하거나, 저장소를 삭제하지 않고 Archive 처리해야 한다.
+
+삭제 검토 당시 `secuwatcher-yolo11` 상태는 다음과 같았다.
+
+```text
+visibility: private
+branches: main, SOD-YOLO
+commits: 7 (main 1개, SOD-YOLO에 추가 6개)
+tags: 없음
+releases: 없음
+open issues: 없음
+```
+
+현재 `vision-research`에는 최신 소스 스냅샷이 편입됐지만 기존 7개 커밋의 이력 자체는 병합되지 않았다. 따라서 영구 백업 없이 `secuwatcher-yolo11`을 삭제하면 과거 변경 이력을 잃는다.
