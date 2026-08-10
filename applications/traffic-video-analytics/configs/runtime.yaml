@@ -1,0 +1,16 @@
+# Reference paths used during the migration verification stage.
+# The current v5.3.1 CLI still receives these paths as explicit arguments.
+runtime:
+  conda_env: paddleocr_gpu_cu126
+  ultralytics_source: /home/hsjeong/workspace/Yolo26/ultralytics
+
+models:
+  detection: /home/hsjeong/workspace/Yolo26/ultralytics/models/3차모델/best.pt
+  lane_segmentation: /home/hsjeong/workspace/Yolo26/ultralytics/PROJECT/OCR-CAR-CATEGORY/260727_Y26S_V_LANE_seg/weights/best.pt
+
+verification:
+  input_video: /home/hsjeong/workspace/dataset/TEST_VIDEO/19700101_001037_T.mp4
+  max_frames: 10
+  device: 1
+  output_scale: 0.5
+

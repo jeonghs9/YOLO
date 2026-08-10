@@ -311,3 +311,35 @@ open issues: 없음
 ```
 
 현재 `vision-research`에는 최신 소스 스냅샷이 편입됐지만 기존 7개 커밋의 이력 자체는 병합되지 않았다. 따라서 영구 백업 없이 `secuwatcher-yolo11`을 삭제하면 과거 변경 이력을 잃는다.
+
+## 12. Traffic Video Analytics 1단계 분리
+
+2026-08-10에 기존 `OCR-CAR-CATEGORY/UTIL`의 최종 배포 파일을 새 애플리케이션 구조로 복사하고 회귀 검증했다.
+
+```text
+원본: /home/hsjeong/workspace/Yolo26/ultralytics/PROJECT/OCR-CAR-CATEGORY/UTIL/visualize_solid_lane_crossing_v5.3.1.py
+신규: /home/hsjeong/workspace/applications/traffic-video-analytics/scripts/visualize_solid_lane_crossing_v5.3.1.py
+```
+
+- `Yolo26` 코드, 모델, 데이터와 기존 `PROJECT` 원본은 이동하거나 삭제하지 않았다.
+- 실제 런타임은 `vision-det/YOLO26-MASTER`가 아니라 `/home/hsjeong/workspace/Yolo26/ultralytics`의 editable `ultralytics 8.4.6`이다.
+- 원본과 신규 스크립트의 SHA-256이 동일한 것을 확인했다.
+- 두 위치에서 동일 모델·동일 영상의 첫 10프레임을 GPU 1로 실행했다.
+- 생성된 MP4와 CSV가 각각 바이트 단위로 동일했다.
+- 신규 위치에서 PaddleOCR 모델 3종 초기화와 1프레임 처리를 확인했다.
+- 모델과 생성 결과는 `models/`, `outputs/`에 둘 수 있지만 Git에서는 제외한다.
+
+상세 검증 결과와 기존 UTIL 파일 분류는 다음 문서에 기록했다.
+
+```text
+applications/traffic-video-analytics/docs/MIGRATION_VERIFICATION_2026-08-10.md
+applications/traffic-video-analytics/docs/UTIL_FILE_DISPOSITION.md
+```
+
+현재 PaddleOCR 캐시는 여전히 다음 기존 경로를 사용한다.
+
+```text
+/home/hsjeong/workspace/Yolo26/ultralytics/UTIL/LPR/License-Plate-Recognition-System
+```
+
+따라서 SegFormer 자료, 재현 도구, 과거 프로토타입과 OCR 캐시를 별도로 보존하기 전에는 기존 `OCR-CAR-CATEGORY/UTIL` 또는 관련 상위 경로를 삭제하면 안 된다.

@@ -1,0 +1,22 @@
+# Local model artifacts
+models/**
+!models/.gitkeep
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Generated outputs
+outputs/**
+!outputs/.gitkeep
+*.mp4
+*.avi
+*.mov
+
+# Runtime and experiment artifacts
+wandb/
+runs/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
