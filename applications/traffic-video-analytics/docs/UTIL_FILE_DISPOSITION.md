@@ -20,6 +20,8 @@ It is standalone with respect to project-local Python imports. Its required runt
 
 ## Move with SegFormer research
 
+Status: copied to `vision-seg/SegFormer` and validated on 2026-08-10. The legacy copies remain in place until the large `pretrained` and `work_dirs` artifacts receive durable locations.
+
 These files are not required by the current deployment release, but are required to reproduce or continue SegFormer work. Move them with the future `vision-seg/SegFormer` project rather than deleting them.
 
 ```text
@@ -99,4 +101,3 @@ Do not delete the legacy `UTIL` directory until all of the following are true:
 3. Historical prototypes are committed or archived.
 4. The full representative-video regression passes from the new location.
 5. OCR cache and model paths no longer depend on an old directory that will be removed.
-

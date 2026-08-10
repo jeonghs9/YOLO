@@ -343,3 +343,35 @@ applications/traffic-video-analytics/docs/UTIL_FILE_DISPOSITION.md
 ```
 
 따라서 SegFormer 자료, 재현 도구, 과거 프로토타입과 OCR 캐시를 별도로 보존하기 전에는 기존 `OCR-CAR-CATEGORY/UTIL` 또는 관련 상위 경로를 삭제하면 안 된다.
+
+## 13. SegFormer 소스 분리 및 검증
+
+2026-08-10에 기존 프로젝트 내부의 NVlabs SegFormer 소스와 로컬 차선 데이터셋 확장을 다음 위치로 복제했다.
+
+```text
+기존: /home/hsjeong/workspace/Yolo26/ultralytics/PROJECT/OCR-CAR-CATEGORY/git/SegFormer
+신규: /home/hsjeong/workspace/vision-seg/SegFormer/source
+```
+
+- NVlabs upstream commit: `65fa8cfa9b52b6ee7e8897a98705abf8570f9e32`
+- 기존 소스와 22GB `work_dirs`, 867MB `pretrained`는 삭제하지 않았다.
+- 커스텀 SkyScapes·AI Hub 데이터셋 클래스와 config 4개를 보존했다.
+- 데이터 준비, 환경 설정, 변환, 추론 스크립트와 관련 문서를 `vision-seg/SegFormer` 아래로 복사했다.
+- `segformer_cu111`의 editable `mmsegmentation` 경로를 신규 source로 전환했다.
+- `PYTHONNOUSERSITE=1`이 없으면 사용자 전역 MMCV 1.7.1을 읽어 실패하는 것을 확인했다.
+- 올바른 실행에서는 MMCV 1.3.0, MMSEG 0.11.0과 CUDA extension import가 정상이다.
+- 기존·신규 경로에서 같은 B0 checkpoint와 1024×1024 SkyScapes 타일을 GPU 추론했다.
+- 두 마스크의 SHA-256이 같고 다른 픽셀은 0개였다.
+
+대용량 자료는 복제하지 않았으며 신규 source의 다음 로컬 심볼릭 링크로 기존 자료를 임시 참조한다.
+
+```text
+source/pretrained -> 기존 SegFormer/pretrained
+source/work_dirs  -> 기존 SegFormer/work_dirs
+```
+
+따라서 이 링크를 영구 artifact 위치로 교체하기 전에는 기존 SegFormer 폴더를 삭제하면 안 된다. 상세 내용은 다음 문서에 기록했다.
+
+```text
+vision-seg/SegFormer/docs/MIGRATION_VERIFICATION_2026-08-10.md
+```
