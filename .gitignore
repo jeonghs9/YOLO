@@ -5,3 +5,7 @@ __pycache__/
 *.cache
 runs/
 weights/
+
+# Track only the YOLO11 source tree in the parent vision-research repository.
+vision-det/Yolo11/*
+!vision-det/Yolo11/ultralytics/

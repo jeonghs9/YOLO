@@ -1,0 +1,67 @@
+# HierLight-YOLO (Ultralytics-style, paper-aligned)
+# - IRDCB(c1->c2, n, t): 1x1 Compress -> DW3x3 -> DW3x3 -> 1x1 Expand (+residual if c1==c2)
+# - LDown: DW(k,s) -> PW(1x1)
+# - HFCC: P2~P5 1x1 channel compression before HEPAN
+# NOTE: IRDCB, LDown 파이토치 클래스가 import되어 있어야 함.
+
+nc: 80
+
+scales:  # [depth, width, max_channels] (참고용)
+  n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+
+# === Backbone: 다운샘플 스케줄 명확화 ===
+backbone:
+  - [-1, 1, Conv,  [64, 3, 2]]        # 0: /2 (P1)
+  - [-1, 1, Conv,  [128, 3, 2]]       # 1: /4 (P2)  ← 다운샘플은 Conv에서
+  - [-1, 2, C3k2_StarGate,   [128, 1]]          # 2: /4 (P2 out)
+  - [-1, 1, Conv,  [256, 3, 2]]       # 3: /8 (P3)
+  - [-1, 2, C3k2_StarGate,   [256, 1]]          # 4: /8 (P3 out)
+
+  # 논문: 깊은 단계는 LDown + IRDCB
+  - [-1, 1, LDown, [512, 2, 2, 0]]       # 5: /16 (P4)
+  - [-1, 2, IRDCB, [512, 1, 2.0]]     # 6: /16 (P4 out)
+  - [-1, 1, LDown, [1024, 2, 2, 0]]      # 7: /32 (P5)
+  - [-1, 2, IRDCB, [1024, 1, 2.0]]    # 8: /32
+  - [-1, 1, SPPF,  [1024, 5]]         # 9: /32 (P5 out)
+
+  # ---- HFCC (P2~P5 1x1 압축) ----
+  - [2, 1, Conv, [128, 1, 1]]         # 10: HFCC P2 (from layer 2)
+  - [4, 1, Conv, [256, 1, 1]]         # 11: HFCC P3 (from layer 4)
+  - [6, 1, Conv, [512, 1, 1]]         # 12: HFCC P4 (from layer 6)
+  - [9, 1, Conv, [512, 1, 1]]         # 13: HFCC P5 (1024->512, from layer 9)
+
+head:
+  # ===== Top-Down (HEPAN) =====
+  - [13, 1, Conv, [512, 1, 1]]                 # 14
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 15
+  - [[-1, 12], 1, AlignConcat, [1]]            # 16  ← Concat → AlignConcat
+  - [-1, 1, IRDCB, [512, 1, 2.0]]              # 17
+
+  - [-1, 1, Conv, [256, 1, 1]]                 # 18
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 19
+  - [[-1, 11], 1, AlignConcat, [1]]            # 20  ←
+  - [-1, 1, IRDCB, [256, 1, 2.0]]              # 21
+
+  - [-1, 1, Conv, [128, 1, 1]]                 # 22
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 23
+  - [[-1, 10], 1, AlignConcat, [1]]            # 24  ←
+  - [-1, 1, IRDCB, [128, 1, 2.0]]              # 25
+
+  # ===== Bottom-Up (HEPAN) =====
+  - [25, 1, LDown, [256, 2, 2, 0]]             # 26
+  - [[-1, 21], 1, AlignConcat, [1]]            # 27  ←
+  - [-1, 1, IRDCB, [256, 1, 2.0]]              # 28
+
+  - [-1, 1, LDown, [512, 2, 2, 0]]             # 29
+  - [[-1, 17], 1, AlignConcat, [1]]            # 30  ←
+  - [-1, 1, IRDCB, [512, 1, 2.0]]              # 31
+
+  - [-1, 1, LDown, [512, 2, 2, 0]]             # 32
+  - [[-1, 13], 1, AlignConcat, [1]]            # 33  ←
+  - [-1, 1, IRDCB, [512, 1, 2.0]]              # 34
+
+  - [[25, 28, 31, 34], 1, Detect, [nc]]        # 35

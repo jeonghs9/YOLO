@@ -1,0 +1,99 @@
+# TY-RIST: Tactical YOLO Tricks for Real-time Infrared Small Target Detection
+# Based on YOLOv12n architecture
+#
+# Reference: This YAML structure is conceptual and based on the TY-RIST paper's
+#            description and common YOLOv8+ YAML conventions.
+#            Specific module arguments for YOLOv12n are extrapolated.
+
+# Parameters
+nc: 4  # Number of classes for Infrared Small Target (usually 1: target)
+depth_multiple: 0.33 # Model depth multiple (YOLOv12n's 'n' variant)
+width_multiple: 0.25 # Model width multiple (YOLOv12n's 'n' variant)
+
+strides: [8, 16, 32, 64]
+scales:
+  n: [0.50, 0.25, 1024]
+  s: [0.50, 0.50, 1024]
+  m: [0.50, 1.00, 512]
+  l: [1.00, 1.00, 512] 
+  x: [1.00, 1.50, 512] 
+
+# anchors: - Not explicitly mentioned or modified for TY-RIST's core concept,
+#            modern YOLO often uses anchor-free or optimized anchors.
+
+# YOLOvX.0 backbone
+# 'from', 'number', 'module', 'args'
+# -1: from previous layer
+# 1: number of repeats
+# Conv: Convolutional layer [output_channels, kernel_size, stride, padding]
+# C2f: CSPDarknet bottleneck block [output_channels, shortcut, groups, expansion]
+# SPPF: Spatial Pyramid Pooling Fast [output_channels, kernel_size]
+
+backbone:
+  # 0 - Input: [batch, 3, H, W] (e.g., 512x512 for IR)
+  - [-1, 1, Conv, [16, 3, 1]] # TY-RIST Modification: Stride reduced from 2 to 1
+                             # Preserves fine details for small targets.
+                             # This generates the C1 feature map.
+  - [-1, 2, C3k2_StarGate, [32, True]]  # C1 (Output of this block)
+  - [-1, 1, Conv, [32, 3, 2]] # Downsample (Stride 2)
+  - [-1, 2, C3k2_StarGate, [64, True]]  # C2 (Output of this block) - now explicitly used
+  - [-1, 1, Conv, [64, 3, 2]] # Downsample (Stride 2)
+  - [-1, 2, C3k2_StarGate, [128, True]] # C3 (Output of this block)
+  - [-1, 1, Conv, [128, 3, 2]] # Downsample (Stride 2)
+  - [-1, 2, C3k2_StarGate, [256, True]] # C4 (Output of this block)
+  - [-1, 1, Conv, [256, 3, 2]] # Downsample (Stride 2)
+  - [-1, 2, C3k2_StarGate, [512, True]] # C5 (Output of this block)
+  - [-1, 1, SPPF, [512, 5]]   # Spatial Pyramid Pooling for varied receptive fields
+
+# YOLOvX.0 head
+# 'from', 'number', 'module', 'args'
+# -1: from previous layer
+# 1: number of repeats
+# Concat: Concatenate features
+# Upsample: Upsample features
+# C2f: CSPDarknet bottleneck block
+# CoordAttnBlock: Coordinate Attention block (TY-RIST Custom)
+# Detect: Detection head (predicts bounding boxes, objectness, classes)
+
+head:
+  # ---- FPN (Top-down) ----
+  - [-1, 1, Conv, [256, 1, 1]]          # 11
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 7], 1, Concat, [1]]           # Concat with C4 (idx 7)  -> 13
+  - [-1, 1, C3k2_StarGate, [256, False]]          # P5_out                  -> 14
+
+  - [-1, 1, Conv, [128, 1, 1]]          # 15
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 5], 1, Concat, [1]]           # Concat with C3 (idx 5)  -> 17
+  - [-1, 1, C3k2_StarGate, [128, False]]          # P4_out                  -> 18
+
+  - [-1, 1, Conv, [64, 1, 1]]           # 19
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 3], 1, Concat, [1]]           # Concat with C2 (idx 3)  -> 21
+  - [-1, 1, C3k2_StarGate, [64, False]]           # P3_out                  -> 22
+
+  # P2 branch (TY-RIST)
+  - [-1, 1, Conv, [32, 1, 1]]           # 23
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 1], 1, Concat, [1]]           # Concat with C1 (idx 1)  -> 25
+  - [-1, 1, C3k2_StarGate, [32, False]]           # P2_out                  -> 26
+
+  # ---- PAN (Bottom-up) ----
+  - [-1, 1, Conv, [32, 3, 2]]           # 27 (down from P2)
+  - [[-1, 22], 1, Concat, [1]]          # + P3_out (idx 22)
+  - [-1, 1, C3k2_StarGate, [64, False]]           # N2 (for P3)             -> 29
+
+  - [-1, 1, Conv, [64, 3, 2]]           # 30
+  - [[-1, 18], 1, Concat, [1]]          # + P4_out (idx 18)
+  - [-1, 1, C3k2_StarGate, [128, False]]          # N3 (for P4)             -> 32
+
+  - [-1, 1, Conv, [128, 3, 2]]          # 33
+  - [[-1, 14], 1, Concat, [1]]          # + P5_out (idx 14)
+  - [-1, 1, C3k2_StarGate, [256, False]]          # N4 (for P5)             -> 35
+
+  # ---- CoordAtt on P2 (cascaded x3) ----
+  - [26, 1, CoordAtt, [32]]             # 36
+  - [-1, 1, CoordAtt, [32]]             # 37
+
+  # ---- Detect ----
+  - [[37, 29, 32, 35], 1, Detect, [nc]]
