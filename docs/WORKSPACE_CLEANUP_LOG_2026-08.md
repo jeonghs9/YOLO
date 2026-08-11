@@ -411,3 +411,28 @@ source/work_dirs  -> ../outputs/work_dirs
 ```
 
 기존 SegFormer 경로에는 `pretrained`와 `work_dirs`가 더 이상 남아 있지 않다. 신규 실제 checkpoint 경로에서 GPU 추론을 다시 실행했으며 기존 baseline 마스크와 SHA-256이 같고 다른 픽셀은 0개였다.
+
+### 기존 SegFormer 소스 삭제 및 checkpoint 재확인
+
+2026-08-11에 기존 SegFormer 폴더의 외부 참조, 로컬 확장 7개 일치 여부, editable import 경로와 artifact 부재를 최종 확인했다. 기존 `UTIL`에 남아 있던 SegFormer 절대경로도 신규 source로 갱신한 뒤 다음 기존 폴더를 삭제했다.
+
+```text
+/home/hsjeong/workspace/Yolo26/ultralytics/PROJECT/OCR-CAR-CATEGORY/git/SegFormer
+```
+
+삭제 후 `segformer_cu111`은 계속 다음 신규 경로를 import한다.
+
+```text
+/home/hsjeong/workspace/vision-seg/SegFormer/source/mmseg/__init__.py
+```
+
+checkpoint를 재확인한 결과 실험당 1개씩 총 4개만 남아 있으며 중간 checkpoint는 없다.
+
+```text
+b0_aihub_40k/iter_40000.pth
+b0_aihub_bev_40k/iter_40000.pth
+b0_skyscapes_20k/iter_10000.pth
+b2_skyscapes_30k/iter_14000.pth
+```
+
+B0 AI Hub는 best와 final이 같고, B2 SkyScapes는 best checkpoint다. B0 AI Hub BEV와 B0 SkyScapes는 final checkpoint이며 로그상 최고 mIoU checkpoint와는 다르다. 네 checkpoint와 로그·config의 현재 `work_dirs` 용량은 약 443MB다. pretrained B0~B5 6개 약 867MB는 사용자 요청에 따라 그대로 유지했다.

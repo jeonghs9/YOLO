@@ -110,6 +110,21 @@ If the intermediate checkpoint and unused pretrained candidates are removed, the
 
 No checkpoint or pretrained model deletion should occur without explicit confirmation.
 
+## Current checkpoint state — 2026-08-11
+
+A follow-up audit found that intermediate checkpoints had already been removed. Exactly one real checkpoint remains for each experiment:
+
+| Experiment | Retained checkpoint | Type according to validation log | Recorded mIoU |
+|---|---:|---|---:|
+| B0 AI Hub | `iter_40000.pth` | best and final | 0.6513 |
+| B0 AI Hub BEV | `iter_40000.pth` | final; logged best was iter 38000 | 0.6608 |
+| B0 SkyScapes | `iter_10000.pth` | final; logged best was iter 7000 | 0.5534 |
+| B2 SkyScapes | `iter_14000.pth` | best | 0.5838 |
+
+The four checkpoints, logs, and copied configs occupy approximately 443MB. There are no remaining intermediate checkpoint deletion candidates.
+
+The pretrained directory still contains `mit_b0.pth` through `mit_b5.pth` and occupies approximately 867MB. Per user request, no pretrained file was removed.
+
 ## Artifact relocation
 
 After the audit, the remaining artifact directories were moved without duplication:
@@ -130,3 +145,5 @@ source/work_dirs  -> ../outputs/work_dirs
 ```
 
 GPU inference from the relocated checkpoint produced the same mask SHA-256 as the original baseline, with zero differing pixels.
+
+After reference verification, the remaining legacy SegFormer source directory was deleted on 2026-08-11. Legacy UTIL scripts that still referenced the old source path were updated to `/home/hsjeong/workspace/vision-seg/SegFormer/source` before deletion.

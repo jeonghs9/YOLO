@@ -123,6 +123,6 @@ different pixels: 0
 
 The new source path is functionally equivalent for the tested config and checkpoint. It is safe to use the new source and editable installation.
 
-The new source and artifacts no longer depend on the legacy SegFormer `pretrained` or `work_dirs` paths. A final reference and file audit is still required before deleting the remaining legacy source directory.
+The new source and artifacts no longer depend on the legacy SegFormer paths. After the final reference and file audit, the remaining legacy source directory was deleted on 2026-08-11. The editable environment continues to import the new source path.
 
 Artifact cleanup performed after this verification is recorded in `ARTIFACT_AUDIT_2026-08-10.md`. The generated 20.2GB `res.pkl` and approximately 144MB of test visualizations were removed, reducing the legacy SegFormer directory to approximately 3.6GB.
